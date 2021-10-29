@@ -37,6 +37,6 @@ EDataTableTest >> testLeftBoxFigure2 [
 	numberOfRepetition timesRepeat: [ joinPointSemaphore wait ].
 
 	self
-		assert: (dataTable lookupFor: #some_key inTable: dataTable)
-		equals: 1. "Without the bug we should have numberOfRepetition + 1"
+		deny: (dataTable lookupFor: #some_key inTable: dataTable)
+		equals: numberOfRepetition + 1.
 ]
