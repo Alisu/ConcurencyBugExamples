@@ -46,9 +46,9 @@ ProcessSpawnerLooseTransaction >> procReg [
 
 	| pid1 |
 	[ 
-	globalProcessRegister := channelIn receive.
-	self wait.
 
+	self wait.
+	globalProcessRegister := channelIn receive.
 	globalProcessRegister whereis: 'gazonk'.
 	self wait.
 
