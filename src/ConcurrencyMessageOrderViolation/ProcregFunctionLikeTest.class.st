@@ -11,7 +11,7 @@ ProcregFunctionLikeTest >> setUp [
 ]
 
 { #category : #tests }
-ProcregFunctionLikeTest >> testExample1OfArticle [
+ProcregFunctionLikeTest >> testConcurrentProcessSpawnerDoesNotRegisterAtSameTime [
 
 	"proc-reg code:
 			proc_reg(Name) ->
@@ -48,13 +48,13 @@ ProcregFunctionLikeTest >> testExample1OfArticle [
 	processSpawner2 signal.
 	
 	processSpawner1 signal.
-	
+
 	processSpawner2 signal.
 	processSpawner2 signal.
 	
 	"We wait until the processSwapner finishes execution before asserting"
+	processSpawner1 waitFinished.
 	processSpawner2 waitFinished.
-	
 	self assert: processSpawner2 isError.
 	
 	
@@ -63,7 +63,80 @@ ProcregFunctionLikeTest >> testExample1OfArticle [
 ]
 
 { #category : #tests }
-ProcregFunctionLikeTest >> testExample1OfArticleWithChannels [
+ProcregFunctionLikeTest >> testConcurrentProcessSpawnerDoesNotRegisterAtSameTimeWithLooseTransactionWithFullChannel [
+
+	"testConcurrentProcessSpawnerDoesNotRegisterAtSameTime is the orignal bug.
+LooseTransaction means there is only a send and receive englobing all the proc_reg message.
+In this solution we use a FullPermissionTransferChannel.
+We have a problem during the transfer cause Object instance do not understand owner: else we should have a DNU during runtime but there is no garanty
+May be we should have a specific placeholder."
+
+	| processSpawner1 processSpawner2 register |
+	register := EProcessRegister newOwned.
+	processSpawner1 := ProcessSpawnerLooseTransaction spawn.
+	processSpawner2 := ProcessSpawnerLooseTransaction spawn.
+	
+	"Changing the default writeChannel to fullChannel"
+	processSpawner1 channelIn: FullPermissionTransferChannel new.
+	processSpawner2 channelIn: FullPermissionTransferChannel new.
+
+	processSpawner1 channelInSend: register.
+
+	processSpawner1 signal.
+	processSpawner1 signal.
+
+	self should: [processSpawner2 channelInSend: register.] raise: MessageNotUnderstood.
+
+	"
+	processSpawner2 signal.
+	
+	processSpawner1 signal.
+
+	processSpawner2 signal.
+	processSpawner2 signal.
+	
+	
+	processSpawner1 waitFinished.
+	processSpawner2 waitFinished.
+	self assert: processSpawner2 isError."
+]
+
+{ #category : #tests }
+ProcregFunctionLikeTest >> testConcurrentProcessSpawnerDoesNotRegisterAtSameTimeWithLooseTransactionWithWriteChannel [
+
+	"testConcurrentProcessSpawnerDoesNotRegisterAtSameTime is the orignal bug.
+LooseTransaction means there is only a send and receive englobing all the proc_reg message.
+In this solution we use a WritePermissionTransferChannel.
+Since we already transfered the write permission we cannot transfer it a second time thus we have an Error"
+
+	| processSpawner1 processSpawner2 register |
+	register := EProcessRegister newOwned.
+	processSpawner1 := ProcessSpawnerLooseTransaction spawn.
+	processSpawner2 := ProcessSpawnerLooseTransaction spawn.
+
+	processSpawner1 channelInSend: register.
+
+	processSpawner1 signal.
+	processSpawner1 signal.
+
+	self should: [ processSpawner2 channelInSend: register ] raise: ModificationForbidden
+
+	"We dont need the rest, it should not work "
+	"processSpawner2 signal.
+	
+	processSpawner1 signal.
+
+	processSpawner2 signal.
+	processSpawner2 signal.
+	
+	
+	processSpawner1 waitFinished.
+	processSpawner2 waitFinished.
+	self assert: processSpawner2 isError."
+]
+
+{ #category : #tests }
+ProcregFunctionLikeTest >> testConcurrentProcessSpawnerDoesNotRegisterAtSameTimeWithTightTransaction [
 
 	"proc-reg code:
 			proc_reg(Name) ->
@@ -89,25 +162,30 @@ ProcregFunctionLikeTest >> testExample1OfArticleWithChannels [
 
 	"We will simulate the proc_reg function with the bad interleaving"
 
-	| pid1 pid2 channel |
-	[ 
-	globalProcessRegister whereis: 'gazonk'.
-	pid1 := EProcess spawn.
-	semaphoreForOrdering signal.
-	semaphoreForOrdering2 wait.
-	globalProcessRegister registerName: 'gazonk' for: pid1.
-	channel send: globalProcessRegister.
-	semaphoreForOrdering signal ] fork.
+	| processSpawner1 processSpawner2 register |
+	register := EProcessRegister new.
+	processSpawner1 := ProcessSpawnerLooseTransaction spawn.
+	processSpawner2 := ProcessSpawnerLooseTransaction spawn.
+	
+	processSpawner1 channelInSend: register.
+	
+	processSpawner1 signal.
+	processSpawner1 signal.
+	
+	self should: [processSpawner2 channelInSend: register] raise: ModificationForbidden.
+	processSpawner2 signal.
+	
+	processSpawner1 signal.
 
-	self
-		should: [ 
-			[ 
-			semaphoreForOrdering wait.
-			globalProcessRegister := channel receive.
-			globalProcessRegister whereis: 'gazonk'.
-			semaphoreForOrdering2 signal.
-			semaphoreForOrdering wait.
-			pid2 := EProcess spawn.
-			globalProcessRegister registerName: 'gazonk' for: pid2 ] fork ]
-		raise: Error
+	processSpawner2 signal.
+	processSpawner2 signal.
+	
+	"We wait until the processSwapner finishes execution before asserting"
+	processSpawner1 waitFinished.
+	processSpawner2 waitFinished.
+	self assert: processSpawner2 isError.
+	
+	
+	
+
 ]

@@ -6,7 +6,8 @@ Class {
 		'requestSemaphore',
 		'data',
 		'error',
-		'finishedSemaphore'
+		'finishedSemaphore',
+		'channel'
 	],
 	#category : #ConcurrencyBadMessageInterleaving
 }
@@ -41,8 +42,22 @@ ExampleWebApp >> isOnError [
 
 { #category : #requesting }
 ExampleWebApp >> requesting [
-	[self firstRequest.
-	self secondRequest] fork.
+	[
+	self firstRequest.
+	requestSemaphore wait.
+	self secondRequest.
+	] fork.
+]
+
+{ #category : #requesting }
+ExampleWebApp >> requestingWithChannels [
+	[
+	data := channel receive.
+	self firstRequest: data.
+	requestSemaphore wait.
+	self secondRequest: data.
+	channel send: data.
+	] fork.
 ]
 
 { #category : #accessing }
@@ -50,11 +65,11 @@ ExampleWebApp >> secondRequest [
 
 	| dataToWorkWith |
 	[ 
-	requestSemaphore wait.
 	dataToWorkWith := data at: #someKey.
 	self doSomethingWith: dataToWorkWith ] onErrorDo: [ 
 		error := true.
-		finishedSemaphore signal ]
+		].
+	finishedSemaphore signal.
 ]
 
 { #category : #signalling }
