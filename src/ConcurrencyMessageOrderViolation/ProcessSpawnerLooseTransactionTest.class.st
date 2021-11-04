@@ -26,11 +26,6 @@ LooseTransaction means there is only a send and receive englobing all the proc_r
 In this solution we use a FullPermissionTransferChannel.
 We have a problem during the transfer cause Object instance do not understand owner: else we should have a DNU during runtime but there is no garanty
 May be we should have a specific placeholder."
-
-	| processSpawner1 processSpawner2 register |
-	register := EProcessRegister newOwned.
-	processSpawner1 := ProcessSpawnerLooseTransaction spawn.
-	processSpawner2 := ProcessSpawnerLooseTransaction spawn.
 	
 	"Changing the default writeChannel to fullChannel"
 	processSpawner1 channelIn: CopyValueTransferChannel new.

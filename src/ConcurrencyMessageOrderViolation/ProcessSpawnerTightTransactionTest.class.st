@@ -54,10 +54,10 @@ ProcessSpawnerTightTransactionTest >> testConcurrentProcessSpawnerDoesNotRegiste
 ProcessSpawnerTightTransactionTest >> testConcurrentProcessSpawnerDoesNotRegisterAtSameTimeWithTightTransactionWithFullTransfer [
 	
 	"Change the channels"
-	processSpawner1 registerChannelSend: FullPermissionTransferChannel new.
-	processSpawner1 registerChannelReceive: FullPermissionTransferChannel new.
-	processSpawner2 registerChannelSend: FullPermissionTransferChannel new.
-	processSpawner2 registerChannelReceive: FullPermissionTransferChannel new.
+	processSpawner1 registerChannelSend: CopyValueTransferChannel new.
+	processSpawner1 registerChannelReceive: CopyValueTransferChannel new.
+	processSpawner2 registerChannelSend: CopyValueTransferChannel new.
+	processSpawner2 registerChannelReceive: CopyValueTransferChannel new.
 
 	processSpawner1 channelWhereIsSend: register.
 	processSpawner1 signal.
