@@ -68,6 +68,16 @@ ProcessSpawnerTightTransaction >> receiveRegister [
 	channelRegisterOut receive.
 ]
 
+{ #category : #setting }
+ProcessSpawnerTightTransaction >> registerChannelReceive: aFullPermissionTransferChannel [ 
+	channelRegisterOut := aFullPermissionTransferChannel
+]
+
+{ #category : #setting }
+ProcessSpawnerTightTransaction >> registerChannelSend: aFullPermissionTransferChannel [ 
+	channelRegisterIn := aFullPermissionTransferChannel 
+]
+
 { #category : #'as yet unclassified' }
 ProcessSpawnerTightTransaction >> sendRegister: anObject [
 
