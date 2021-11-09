@@ -3,9 +3,10 @@ Class {
 	#superclass : #Object,
 	#instVars : [
 		'globalProcessRegister',
-		'synchronizationSemaphore',
 		'error',
-		'finishedSemaphore'
+		'finishedSemaphore',
+		'startedBlock',
+		'finishedBlock'
 	],
 	#category : #'ConcurrencyMessageOrderViolation-ProcessusRegister'
 }
@@ -37,8 +38,9 @@ ProcessSpawner >> globalProcessRegister: anObject [
 ProcessSpawner >> initialize [ 
 
 	super initialize.
-	synchronizationSemaphore := Semaphore new.
-	finishedSemaphore  := Semaphore new.
+	startedBlock := Semaphore new.
+	finishedBlock := Semaphore new.
+	finishedSemaphore := Semaphore new.
 	error := false.
 ]
 
@@ -51,48 +53,67 @@ ProcessSpawner >> isError [
 { #category : #'as yet unclassified' }
 ProcessSpawner >> procReg [
 
-	| pid1 |
-	[ 
-	synchronizationSemaphore wait.
+	| pid1 registered |
+	self waitStarting.
 
-	globalProcessRegister whereis: 'gazonk'.
+	registered := globalProcessRegister whereis: 'gazonk'.
+	self wait.
 
-	synchronizationSemaphore wait.
+	registered
+		ifNil: [ 
+			pid1 := EProcess spawn.
+			self wait.
 
-	pid1 := EProcess spawn.
-
-	synchronizationSemaphore wait.
-
-	globalProcessRegister registerName: 'gazonk' for: pid1 ] onErrorDo: [ 
-		error := true ].
+			[ globalProcessRegister registerName: 'gazonk' for: pid1 ] 
+				onErrorDo: [ error := true ] ]
+		ifNotNil: [ 
+			self wait.
+			true ].
+	 self signalFinished.	
 	
-	finishedSemaphore signal.
 ]
 
 { #category : #signalling }
 ProcessSpawner >> signal [
 	
-	synchronizationSemaphore signal.
+	startedBlock signal.
+	finishedBlock wait.
+	
+]
+
+{ #category : #signalling }
+ProcessSpawner >> signalFinished [
+
+	finishedBlock signal.
+	finishedSemaphore signal
 ]
 
 { #category : #accessing }
-ProcessSpawner >> synchronizationSemaphore [
+ProcessSpawner >> startedBlock [
 
-	^ synchronizationSemaphore
+	^ startedBlock
 ]
 
 { #category : #accessing }
 ProcessSpawner >> synchronizationSemaphore: anObject [
 
-	synchronizationSemaphore := anObject
+	startedBlock := anObject
 ]
 
 { #category : #synchronization }
 ProcessSpawner >> wait [
-	synchronizationSemaphore wait.
+
+	finishedBlock signal.
+	startedBlock wait.
 ]
 
 { #category : #finalization }
 ProcessSpawner >> waitFinished [
 	finishedSemaphore wait
+]
+
+{ #category : #'as yet unclassified' }
+ProcessSpawner >> waitStarting [
+	
+	startedBlock wait.
 ]
