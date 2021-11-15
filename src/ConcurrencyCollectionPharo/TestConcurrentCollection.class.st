@@ -20,7 +20,7 @@ TestConcurrentCollection >> testDictionary [
 	10000 timesRepeat: [ 
 		[ 
 		increment := increment + 1.
-		string := string , increment asString.
+		string := string , 'blah '.
 		dictTest add: #increment -> increment ] fork ].
 	dictRef := Dictionary new.
 	incrementRef := 0.
@@ -59,4 +59,37 @@ TestConcurrentCollection >> testDictionaryWithOutStringManipulation [
 	self
 		  deny: (dictTest at: #increment)
 		  equals: (dictRef at: #increment)
+]
+
+{ #category : #tests }
+TestConcurrentCollection >> testOrderedCollectionConcurrentAddAfter [
+
+	| increment collectionTest incrementRef  oldObject collectionRef oldObjectRef |
+	
+	"Racy execution"
+	collectionTest := OrderedCollection new.
+	increment := 0.
+	oldObject := 'Blah ', increment asString.
+	collectionTest addFirst: oldObject.
+	10000 timesRepeat: [ 
+		[ 	|newObject|
+		increment := increment + 1.
+		newObject := 'Blah ', increment asString.
+		collectionTest add: newObject after: oldObject.
+		oldObject := newObject.
+		 ] fork ].
+
+	"Reference to comapre the result we should have"
+	collectionRef := OrderedCollection new.
+	incrementRef := 0.
+	oldObjectRef := 'Blah ', increment asString.
+	collectionRef addFirst: oldObject.
+	10000 timesRepeat: [ |newObject|
+		incrementRef := incrementRef + 1.
+		newObject := 'Blah ', increment asString.
+		collectionRef add: newObject after: oldObjectRef.
+		oldObjectRef := newObject. ].
+	self
+		  deny: collectionTest
+		  equals: collectionRef
 ]
